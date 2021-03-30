@@ -27,7 +27,7 @@ func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 
 	var name, err = base64.StdEncoding.DecodeString(splitData[0])
 
-    if err != nil {
+	if err != nil {
 		panic(err)
 	}
 
@@ -116,7 +116,7 @@ func main() {
 			return profile.IsProfileOpen(decodedMessage.Detail[0])
 		} else if decodedMessage.Name == "get-hash" {
 			var hashedPw []byte
-            if hashedPw, err = os.ReadFile(
+			if hashedPw, err = os.ReadFile(
 				path.Join(
 					decodedMessage.Detail[0],
 					".__firecrypt_hash__",

@@ -68,7 +68,7 @@ func profilesFromConfig(cfg *ini.File) []Profile {
 				configured = true
 			}
 
-            profiles = append(profiles, Profile {
+			profiles = append(profiles, Profile {
 				Id: id,
 				Name: section.Key("Name").String(),
 				Path: profilePath,
@@ -119,12 +119,12 @@ func LaunchProfile(profileName string) {
 
 }
 func SetPassword(profilePath string, newPassword string) {
-    var hashFile, err = os.Create(path.Join(profilePath, ".__firecrypt_hash__"))
+	var hashFile, err = os.Create(path.Join(profilePath, ".__firecrypt_hash__"))
 
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
-    hashFile.WriteString(newPassword)
-    hashFile.Close()
+	hashFile.WriteString(newPassword)
+	hashFile.Close()
 }
