@@ -1,0 +1,38 @@
+[x-cloak] {
+    display: none;
+}
+body {
+    background-color: #1b262c;
+    font-family: Helvetica;
+    user-select: none;
+    overflow: hidden;
+    padding: 0 3px;
+}
+body, input {
+    color: #d9d4d0;
+}
+button {
+    width: 100%;
+}
+.profiles {
+    border: 1px solid #d9d4d0;
+    border-radius: 2px;
+    overflow: scroll;
+    height: 200px;
+    margin: 7px 0;
+}
+.box > strong {
+    font-size: 15px;
+}
+.box > p {
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.loading {
+    position: absolute;
+    font-size: 20px;
+    font-weight: bold;
+    top: 50%;
+    right: 50%;
+    transform: translate(50%, -50%);
+}
