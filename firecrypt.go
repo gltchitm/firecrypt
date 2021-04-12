@@ -110,7 +110,7 @@ func main() {
 		} else if decodedMessage.Name == "load-profiles" {
 			return profile.GetProfiles()
 		} else if decodedMessage.Name == "is-profile-open" {
-			if len(os.Args) > 1	&& os.Args[1] == "--no-check-profile-open" {
+			if len(os.Args) > 1 && os.Args[1] == "--no-check-profile-open" {
 				return false
 			}
 			return profile.IsProfileOpen(decodedMessage.Detail[0])
