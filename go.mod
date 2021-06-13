@@ -1,4 +1,4 @@
-module firecrypt
+module github.com/gltchitm/firecrypt
 
 go 1.16
 

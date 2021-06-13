@@ -9,10 +9,10 @@ import (
 	"io/ioutil"
 	"crypto/sha512"
 	"encoding/base64"
-	"firecrypt/internal/crypt"
-	"firecrypt/internal/profile"
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilectron"
+	"github.com/gltchitm/firecrypt/internal/crypt"
+	"github.com/gltchitm/firecrypt/internal/profile"
 )
 
 type DecodedMessage struct {
