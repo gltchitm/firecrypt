@@ -1,6 +1,9 @@
 # Firecrypt
 Firecrypt is an application to encrypt, decrypt & manage Firefox profiles.
 
+## Example Screenshot
+![Example Screenshot](../assets/firecrypt_screenshot_1.png?raw=true)
+
 ## Usage
 After executing Firecrypt, choose a profile from the list. If the profile has not already been configured, read the disclaimer and choose a password. Once configured, you can select the profile and enter your password to launch it. After you are finished using the profile, you can quit Firefox and Firecrypt will automatically reappear with the configuration options.
 
