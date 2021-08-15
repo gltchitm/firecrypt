@@ -1,15 +1,15 @@
 package crypt
 
 import (
-	"path"
 	"os/exec"
+	"path"
 	"path/filepath"
 )
 
 func LockProfile(profilePath, password string) bool {
 	var zipPath = path.Join(
 		filepath.Dir(profilePath),
-		filepath.Base(profilePath) + ".zip",
+		filepath.Base(profilePath)+".zip",
 	)
 	var cmd = exec.Command(
 		"zip",
@@ -36,7 +36,7 @@ func LockProfile(profilePath, password string) bool {
 		"-out",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".firecrypt",
+			filepath.Base(profilePath)+".firecrypt",
 		),
 		"-k",
 		password,
@@ -68,12 +68,12 @@ func UnlockProfile(profilePath, password string) bool {
 		"-in",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".firecrypt",
+			filepath.Base(profilePath)+".firecrypt",
 		),
 		"-out",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".zip",
+			filepath.Base(profilePath)+".zip",
 		),
 		"-k",
 		password,
@@ -88,7 +88,7 @@ func UnlockProfile(profilePath, password string) bool {
 			"rm",
 			path.Join(
 				filepath.Dir(profilePath),
-				filepath.Base(profilePath) + ".zip",
+				filepath.Base(profilePath)+".zip",
 			),
 		)
 
@@ -103,7 +103,7 @@ func UnlockProfile(profilePath, password string) bool {
 		"unzip",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".zip",
+			filepath.Base(profilePath)+".zip",
 		),
 	)
 	cmd.Dir = filepath.Dir(profilePath)
@@ -116,7 +116,7 @@ func UnlockProfile(profilePath, password string) bool {
 		"rm",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".zip",
+			filepath.Base(profilePath)+".zip",
 		),
 	)
 
@@ -128,7 +128,7 @@ func UnlockProfile(profilePath, password string) bool {
 		"rm",
 		path.Join(
 			filepath.Dir(profilePath),
-			filepath.Base(profilePath) + ".firecrypt",
+			filepath.Base(profilePath)+".firecrypt",
 		),
 	)
 

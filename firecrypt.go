@@ -1,14 +1,15 @@
 package main
 
 import (
-	"os"
-	"log"
-	"path"
-	"strings"
-	"runtime"
-	"io/ioutil"
 	"crypto/sha512"
 	"encoding/base64"
+	"io/ioutil"
+	"log"
+	"os"
+	"path"
+	"runtime"
+	"strings"
+
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilectron"
 	"github.com/gltchitm/firecrypt/internal/crypt"
@@ -16,9 +17,10 @@ import (
 )
 
 type DecodedMessage struct {
-	Name string
+	Name   string
 	Detail []string
 }
+
 func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 	var data string
 	message.Unmarshal(&data)
@@ -39,8 +41,8 @@ func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 		panic(err)
 	}
 
-	return DecodedMessage {
-		Name: string(name),
+	return DecodedMessage{
+		Name:   string(name),
 		Detail: strings.Split(string(detail), ","),
 	}
 }
@@ -50,8 +52,8 @@ func main() {
 
 	logger.SetOutput(ioutil.Discard)
 
-	var app, err = astilectron.New(logger, astilectron.Options {
-		AppName: "Firecrypt",
+	var app, err = astilectron.New(logger, astilectron.Options{
+		AppName:           "Firecrypt",
 		BaseDirectoryPath: "firecrypt",
 	})
 
@@ -69,30 +71,30 @@ func main() {
 
 	var window *astilectron.Window
 
-	if window, err = app.NewWindow("./electron/firecrypt.html", &astilectron.WindowOptions {
-		Resizable: astikit.BoolPtr(false),
-		Center: astikit.BoolPtr(true),
-		Height: astikit.IntPtr(330),
-		Width: astikit.IntPtr(330),
+	if window, err = app.NewWindow("./electron/firecrypt.html", &astilectron.WindowOptions{
+		Resizable:   astikit.BoolPtr(false),
+		Center:      astikit.BoolPtr(true),
+		Height:      astikit.IntPtr(330),
+		Width:       astikit.IntPtr(330),
 		AlwaysOnTop: astikit.BoolPtr(true),
-		WebPreferences: &astilectron.WebPreferences {
+		WebPreferences: &astilectron.WebPreferences{
 			DevTools: astikit.BoolPtr(false),
 		},
 	}); err != nil {
 		panic(err)
 	}
 
-	var menu = app.NewMenu([] *astilectron.MenuItemOptions {
+	var menu = app.NewMenu([]*astilectron.MenuItemOptions{
 		{
 			Label: astikit.StrPtr("Testing"),
-			SubMenu: [] *astilectron.MenuItemOptions {
-				{ Role: astikit.StrPtr("about") },
-				{ Type: astikit.StrPtr("separator") },
-				{ Role: astikit.StrPtr("hide") },
-				{ Role: astikit.StrPtr("hideothers") },
-				{ Role: astikit.StrPtr("unhide") },
-				{ Type: astikit.StrPtr("separator") },
-				{ Role: astikit.StrPtr("quit") },
+			SubMenu: []*astilectron.MenuItemOptions{
+				{Role: astikit.StrPtr("about")},
+				{Type: astikit.StrPtr("separator")},
+				{Role: astikit.StrPtr("hide")},
+				{Role: astikit.StrPtr("hideothers")},
+				{Role: astikit.StrPtr("unhide")},
+				{Type: astikit.StrPtr("separator")},
+				{Role: astikit.StrPtr("quit")},
 			},
 		},
 	})
@@ -102,7 +104,7 @@ func main() {
 		panic(err)
 	}
 
-	window.OnMessage(func (message *astilectron.EventMessage) interface {} {
+	window.OnMessage(func(message *astilectron.EventMessage) interface{} {
 		var decodedMessage = decodeMessage(message)
 
 		if decodedMessage.Name == "is-macos" {

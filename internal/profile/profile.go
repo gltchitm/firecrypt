@@ -2,19 +2,20 @@ package profile
 
 import (
 	"os"
+	"os/exec"
 	"path"
 	"sort"
-	"os/exec"
-	"strings"
 	"strconv"
+	"strings"
+
 	"gopkg.in/ini.v1"
 )
 
 type Profile struct {
-	Id int
-	Name string
-	Path string
-	Configured bool
+	Id                 int
+	Name               string
+	Path               string
+	Configured         bool
 	CurrentlyEncrypted bool
 }
 
@@ -29,10 +30,10 @@ func firefoxPath() string {
 }
 func profilesFromConfig(cfg *ini.File) []Profile {
 	var sections = cfg.Sections()
-	var profiles = []Profile {}
+	var profiles = []Profile{}
 
 	for _, section := range sections {
-		if (section.HasKey("Name")) {
+		if section.HasKey("Name") {
 			var id, err = strconv.Atoi(
 				strings.TrimPrefix(
 					section.Name(),
@@ -68,17 +69,17 @@ func profilesFromConfig(cfg *ini.File) []Profile {
 				configured = true
 			}
 
-			profiles = append(profiles, Profile {
-				Id: id,
-				Name: section.Key("Name").String(),
-				Path: profilePath,
-				Configured: configured || currentlyEncrypted,
+			profiles = append(profiles, Profile{
+				Id:                 id,
+				Name:               section.Key("Name").String(),
+				Path:               profilePath,
+				Configured:         configured || currentlyEncrypted,
 				CurrentlyEncrypted: currentlyEncrypted,
 			})
 		}
 	}
 
-	sort.SliceStable(profiles, func (i, j int) bool {
+	sort.SliceStable(profiles, func(i, j int) bool {
 		return profiles[i].Id < profiles[j].Id
 	})
 
