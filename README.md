@@ -22,6 +22,8 @@ This program is highly experimental! Cryptographic security is not a guarantee a
 ## Disable Profile Already Open Check
 When a profile is selected, Firecrypt will check to be sure it is not already being used. This process is slow and very inefficient. If you want to disable this safeguard for added speed, start Firecrypt with the `--no-check-profile-open` flag.
 
+> **_NOTE:_** The profile open check is no longer as slow as it used to be but the flag to disable it remains.
+
 ## To-Do
 - [ ] Add support for other operating systems
 - [ ] Add support for launching other Firefox installations

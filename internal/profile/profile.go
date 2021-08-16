@@ -96,16 +96,19 @@ func GetProfiles() []Profile {
 	return profilesFromConfig(cfg)
 }
 func IsProfileOpen(profilePath string) bool {
-	var out, err = exec.Command("lsof").Output()
+	var parentlockPath = path.Join(profilePath, ".parentlock")
 
-	if err != nil {
+	if _, err := os.Stat(parentlockPath); os.IsNotExist(err) {
+		return false
+	}
+
+	var out, err = exec.Command("lsof", parentlockPath).Output()
+
+	if err != nil && len(string(out)) > 0 {
 		panic(err)
 	}
 
-	return strings.Contains(
-		string(out),
-		path.Join(profilePath, ".parentlock"),
-	)
+	return len(string(out)) > 0
 }
 func LaunchProfile(profileName string) {
 	var _, err = exec.Command(
