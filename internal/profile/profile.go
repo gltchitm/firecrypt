@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -8,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gofrs/flock"
 	"gopkg.in/ini.v1"
 )
 
@@ -19,8 +22,40 @@ type Profile struct {
 	CurrentlyEncrypted bool
 }
 
+var profileLock *flock.Flock
+
+func GetProfiles() []Profile {
+	cfg, err := ini.Load(path.Join(firefoxPath(), "profiles.ini"))
+	if err != nil {
+		panic(err)
+	}
+
+	return profilesFromConfig(cfg)
+}
+func AcquireProfileLock(profilePath string) bool {
+	profileLock = flock.New(path.Join(profilePath, ".parentlock"))
+	locked, err := profileLock.TryLock()
+	return locked || err != nil
+}
+func ReleaseProfileLock() {
+	err := profileLock.Unlock()
+	if err != nil {
+		panic(err)
+	}
+}
+func LaunchProfile(profileName string) {
+	_, err := exec.Command(
+		"/Applications/Firefox.app/Contents/MacOS/firefox",
+		"-p",
+		profileName,
+	).Output()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func firefoxPath() string {
-	var home, err = os.UserHomeDir()
+	home, err := os.UserHomeDir()
 
 	if err != nil {
 		panic(err)
@@ -29,26 +64,25 @@ func firefoxPath() string {
 	return path.Join(home, "Library/Application Support/Firefox")
 }
 func profilesFromConfig(cfg *ini.File) []Profile {
-	var sections = cfg.Sections()
-	var profiles = []Profile{}
+	sections := cfg.Sections()
+	profiles := []Profile{}
 
 	for _, section := range sections {
 		if section.HasKey("Name") {
-			var id, err = strconv.Atoi(
+			id, err := strconv.Atoi(
 				strings.TrimPrefix(
 					section.Name(),
 					"Profile",
 				),
 			)
-
 			if err != nil {
 				panic(err)
 			}
 
 			var profilePath string
-			var isRelative int
 
-			if isRelative, err = section.Key("IsRelative").Int(); err != nil {
+			isRelative, err := section.Key("IsRelative").Int()
+			if err != nil {
 				panic(err)
 			}
 
@@ -58,15 +92,20 @@ func profilesFromConfig(cfg *ini.File) []Profile {
 				profilePath = section.Key("Path").String()
 			}
 
-			var configured = false
-			var currentlyEncrypted = false
+			configured := true
+			currentlyEncrypted := true
 
-			if _, err = os.ReadFile(profilePath + ".firecrypt"); err == nil {
-				currentlyEncrypted = true
-			} else if _, err = os.ReadFile(
-				path.Join(profilePath, ".__firecrypt_hash__"),
-			); err == nil {
-				configured = true
+			_, err = os.Stat(profilePath + ".firecrypt")
+			if errors.Is(err, fs.ErrNotExist) {
+				currentlyEncrypted = false
+				_, err = os.Stat(path.Join(profilePath, ".__firecrypt_key__"))
+				if errors.Is(err, fs.ErrNotExist) {
+					configured = false
+				} else if err != nil {
+					panic(err)
+				}
+			} else if err != nil {
+				panic(err)
 			}
 
 			profiles = append(profiles, Profile{
@@ -84,51 +123,4 @@ func profilesFromConfig(cfg *ini.File) []Profile {
 	})
 
 	return profiles
-}
-
-func GetProfiles() []Profile {
-	var cfg, err = ini.Load(path.Join(firefoxPath(), "profiles.ini"))
-
-	if err != nil {
-		panic(err)
-	}
-
-	return profilesFromConfig(cfg)
-}
-func IsProfileOpen(profilePath string) bool {
-	var parentlockPath = path.Join(profilePath, ".parentlock")
-
-	if _, err := os.Stat(parentlockPath); os.IsNotExist(err) {
-		return false
-	}
-
-	var out, err = exec.Command("lsof", parentlockPath).Output()
-
-	if err != nil && len(string(out)) > 0 {
-		panic(err)
-	}
-
-	return len(string(out)) > 0
-}
-func LaunchProfile(profileName string) {
-	var _, err = exec.Command(
-		"/Applications/Firefox.app/Contents/MacOS/firefox",
-		"-p",
-		profileName,
-	).Output()
-
-	if err != nil {
-		panic(err)
-	}
-
-}
-func SetPassword(profilePath string, newPassword string) {
-	var hashFile, err = os.Create(path.Join(profilePath, ".__firecrypt_hash__"))
-
-	if err != nil {
-		panic(err)
-	}
-
-	hashFile.WriteString(newPassword)
-	hashFile.Close()
 }

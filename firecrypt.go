@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha512"
 	"encoding/base64"
 	"io/ioutil"
 	"log"
@@ -25,19 +24,15 @@ func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 	var data string
 	message.Unmarshal(&data)
 
-	var splitData = strings.Split(data, ",")
+	splitData := strings.Split(data, ",")
 
-	var name, err = base64.StdEncoding.DecodeString(splitData[0])
-
+	name, err := base64.StdEncoding.DecodeString(splitData[0])
 	if err != nil {
 		panic(err)
 	}
 
-	var detail []byte
-
-	if detail, err = base64.StdEncoding.DecodeString(
-		splitData[1],
-	); err != nil {
+	detail, err := base64.StdEncoding.DecodeString(splitData[1])
+	if err != nil {
 		panic(err)
 	}
 
@@ -46,15 +41,21 @@ func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 		Detail: strings.Split(string(detail), ","),
 	}
 }
-
 func main() {
-	var logger = log.New(log.Writer(), log.Prefix(), log.Flags())
+	logger := log.New(log.Writer(), log.Prefix(), log.Flags())
 
 	logger.SetOutput(ioutil.Discard)
 
-	var app, err = astilectron.New(logger, astilectron.Options{
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	app, err := astilectron.New(logger, astilectron.Options{
 		AppName:           "Firecrypt",
 		BaseDirectoryPath: "firecrypt",
+		VersionElectron:   "15.1.2",
+		AppIconDarwinPath: path.Join(wd, "./electron/resources/icon/icon.icns"),
 	})
 
 	if err != nil {
@@ -64,14 +65,12 @@ func main() {
 	defer app.Close()
 
 	app.HandleSignals()
-
-	if err = app.Start(); err != nil {
+	err = app.Start()
+	if err != nil {
 		panic(err)
 	}
 
-	var window *astilectron.Window
-
-	if window, err = app.NewWindow("./electron/firecrypt.html", &astilectron.WindowOptions{
+	window, err := app.NewWindow("./electron/firecrypt.html", &astilectron.WindowOptions{
 		Resizable:   astikit.BoolPtr(false),
 		Center:      astikit.BoolPtr(true),
 		Height:      astikit.IntPtr(330),
@@ -80,64 +79,50 @@ func main() {
 		WebPreferences: &astilectron.WebPreferences{
 			DevTools: astikit.BoolPtr(false),
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		panic(err)
 	}
 
-	var menu = app.NewMenu([]*astilectron.MenuItemOptions{
+	menu := app.NewMenu([]*astilectron.MenuItemOptions{
 		{
-			Label: astikit.StrPtr("Testing"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{Role: astikit.StrPtr("about")},
-				{Type: astikit.StrPtr("separator")},
-				{Role: astikit.StrPtr("hide")},
-				{Role: astikit.StrPtr("hideothers")},
-				{Role: astikit.StrPtr("unhide")},
-				{Type: astikit.StrPtr("separator")},
-				{Role: astikit.StrPtr("quit")},
-			},
+			Label: astikit.StrPtr("Firecrypt"),
 		},
 	})
 	menu.Create()
 
-	if err = window.Create(); err != nil {
+	window.Create()
+	if err != nil {
 		panic(err)
 	}
 
 	window.OnMessage(func(message *astilectron.EventMessage) interface{} {
-		var decodedMessage = decodeMessage(message)
+		decodedMessage := decodeMessage(message)
 
 		if decodedMessage.Name == "is-macos" {
 			return runtime.GOOS == "darwin"
 		} else if decodedMessage.Name == "load-profiles" {
 			return profile.GetProfiles()
-		} else if decodedMessage.Name == "is-profile-open" {
-			if len(os.Args) > 1 && os.Args[1] == "--no-check-profile-open" {
-				return false
-			}
-			return profile.IsProfileOpen(decodedMessage.Detail[0])
-		} else if decodedMessage.Name == "get-hash" {
-			var hashedPw []byte
-			if hashedPw, err = os.ReadFile(
-				path.Join(
-					decodedMessage.Detail[0],
-					".__firecrypt_hash__",
-				),
-			); err != nil {
-				panic(err)
-			}
-
-			return string(hashedPw)
-		} else if decodedMessage.Name == "hash-password" {
-			var hashedPwBytes = sha512.Sum512([]byte(decodedMessage.Detail[0]))
-			for i := 0; i < 249999; i++ {
-				hashedPwBytes = sha512.Sum512(hashedPwBytes[:])
-			}
-			return base64.StdEncoding.EncodeToString(hashedPwBytes[:])
+		} else if decodedMessage.Name == "acquire-profile-lock" {
+			return profile.AcquireProfileLock(decodedMessage.Detail[0])
+		} else if decodedMessage.Name == "release-profile-lock" {
+			profile.ReleaseProfileLock()
 		} else if decodedMessage.Name == "set-password" {
-			profile.SetPassword(decodedMessage.Detail[0], decodedMessage.Detail[1])
+			crypt.SetPassword(decodedMessage.Detail[0], decodedMessage.Detail[1])
 		} else if decodedMessage.Name == "lock-profile" {
-			crypt.LockProfile(decodedMessage.Detail[0], decodedMessage.Detail[1])
+			crypt.LockProfile(decodedMessage.Detail[0])
+		} else if decodedMessage.Name == "get-profile-migration-status" {
+			migrationStatus := crypt.GetProfileMigrationStatus(decodedMessage.Detail[0])
+
+			if migrationStatus == crypt.ProfileMigrationStatusSupported {
+				return "supported"
+			} else if migrationStatus == crypt.ProfileMigrationStatusMigratable {
+				return "migratable"
+			} else {
+				return "unsupported"
+			}
+		} else if decodedMessage.Name == "migrate-profile" {
+			return crypt.MigrateProfile(decodedMessage.Detail[0], decodedMessage.Detail[1])
 		} else if decodedMessage.Name == "unlock-profile" {
 			return crypt.UnlockProfile(decodedMessage.Detail[0], decodedMessage.Detail[1])
 		} else if decodedMessage.Name == "launch-profile" {

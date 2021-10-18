@@ -3,8 +3,8 @@
     <head>
         <meta charset="utf-8" />
         <script src="./firecrypt.js"></script>
-        <script src="./resources/alpine.min.js" defer></script>
-        <link rel="stylesheet" href="./resources/milligram.min.css" />
+        <script src="./resources/vendor/js/alpine.min.js" defer></script>
+        <link rel="stylesheet" href="./resources/vendor/css/milligram.min.css" />
         <link rel="stylesheet" href="./firecrypt.css" />
     </head>
     <body>
@@ -28,11 +28,11 @@
             "
             x-init="
                 (async () => {
-                    if (await message('is-macos', null)) {
-                        profiles = await message('load-profiles', null)
+                    if (await message('is-macos')) {
+                        profiles = await message('load-profiles')
                         state = 'select-profile'
                     } else {
-                        window.alert('Sorry, only macOS is currently supported.')
+                        alert('Sorry, only macOS is currently supported.')
                         window.close()
                     }
                 })()
@@ -51,9 +51,9 @@
                                 <input
                                     type="radio"
                                     name="profile"
+                                    x-model="selectProfile.path"
                                     :value="profile.Path"
                                     :id="'profile' + index"
-                                    x-model="selectProfile.path"
                                 />
                                 <label
                                     class="label-inline"
@@ -68,9 +68,7 @@
                         @click="
                             (async () => {
                                 state = 'loading'
-                                if (await message('is-profile-open', selectProfile.path)) {
-                                    state = 'profile-already-open'
-                                } else {
+                                if (await message('acquire-profile-lock', selectProfile.path)) {
                                     selectProfile.profile = profiles.find(({ Path }) => {
                                         return Path === selectProfile.path
                                     })
@@ -81,6 +79,8 @@
                                     } else {
                                         state = 'disclaimer'
                                     }
+                                } else {
+                                    state = 'profile-already-open'
                                 }
                             })()
                         "
@@ -105,27 +105,39 @@
                             (async () => {
                                 state = 'loading'
 
-                                if (
-                                    await message(
-                                        'unlock-profile',
-                                        selectProfile.path,
+                                const migrationStatus = await message(
+                                    'get-profile-migration-status',
+                                    selectProfile.path
+                                )
+
+                                if (migrationStatus === 'supported') {
+                                    if (
                                         await message(
-                                            'hash-password',
+                                            'unlock-profile',
+                                            selectProfile.path,
                                             unlockProfile.password
                                         )
-                                    )
-                                ) {
-                                    await message(
-                                        'launch-profile',
-                                        selectProfile.profile.Name
-                                    )
-                                    state = 'configure-profile'
-                                } else {
-                                    state = 'decrypt-failed'
-                                }
+                                    ) {
+                                        await message(
+                                            'launch-profile',
+                                            selectProfile.profile.Name)
+                                        await message(
+                                            'acquire-profile-lock',
+                                            selectProfile.path
+                                        )
+                                        state = 'configure-profile'
+                                    } else {
+                                        state = 'decrypt-failed'
+                                    }
 
-                                unlockProfile.password = ''
-                                profiles = await message('load-profiles')
+                                    unlockProfile.password = ''
+                                    profiles = await message('load-profiles')
+                                } else if (migrationStatus === 'migratable') {
+                                    state = 'migrate-profile'
+                                } else {
+                                    state = 'unsupported-profile'
+                                    unlockProfile.password = ''
+                                }
                             })()
                         "
                         :disabled="8 > unlockProfile.password.length"
@@ -133,8 +145,13 @@
                     <button
                         @mouseleave="$event.target.blur()"
                         @click="
-                            unlockProfile.password = ''
-                            state = 'select-profile'
+                            (async () => {
+                                state = 'loading'
+                                unlockProfile.password = ''
+                                await message('release-profile-lock')
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
                         "
                     >Back</button>
                 </div>
@@ -154,7 +171,14 @@
                     >Yes</button>
                     <button
                         @mouseleave="$event.target.blur()"
-                        @click="state = 'select-profile'"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                await message('release-profile-lock')
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
                     >No</button>
                 </div>
             </template>
@@ -180,23 +204,16 @@
                             (async () => {
                                 state = 'loading'
 
-                                const hashedPw = await message(
-                                    'hash-password',
-                                    configureProfile.password
-                                )
-
                                 await message(
                                     'set-password',
                                     selectProfile.path,
-                                    hashedPw
+                                    configureProfile.password
                                 )
 
                                 if (state === 'setup-profile') {
-                                    state = 'loading'
                                     await message(
                                         'lock-profile',
-                                        selectProfile.path,
-                                        hashedPw
+                                        selectProfile.path
                                     )
                                 }
 
@@ -218,13 +235,18 @@
                     <button
                         @mouseleave="$event.target.blur()"
                         @click="
-                            configureProfile.password = ''
-                            configureProfile.confirmPassword = ''
-                            if (state === 'setup-profile') {
-                                state = 'select-profile'
-                            } else {
-                                state = 'configure-profile'
-                            }
+                            (async () => {
+                                state = 'loading'
+                                configureProfile.password = ''
+                                configureProfile.confirmPassword = ''
+                                if (state === 'setup-profile') {
+                                    await message('release-profile-lock')
+                                    profiles = await message('load-profiles')
+                                    state = 'select-profile'
+                                } else {
+                                    state = 'configure-profile'
+                                }
+                            })()
                         "
                     >Back</button>
                 </div>
@@ -242,11 +264,7 @@
                                 state = 'loading'
                                 await message(
                                     'lock-profile',
-                                    selectProfile.path,
-                                    await message(
-                                        'get-hash',
-                                        selectProfile.path
-                                    )
+                                    selectProfile.path
                                 )
                                 profiles = await message('load-profiles')
                                 state = 'select-profile'
@@ -263,7 +281,14 @@
                     >Change Password</button>
                     <button
                         @mouseleave="$event.target.blur()"
-                        @click="state = 'select-profile'"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                await message('release-profile-lock')
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
                     >Back</button>
                 </div>
             </template>
@@ -293,8 +318,77 @@
                     <p>This profile is already being used.</p>
                     <button
                         @mouseleave="$event.target.blur()"
-                        @click="state = 'select-profile'"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
                     >Back</button>
+                </div>
+            </template>
+            <template x-if="state === 'migrate-profile'">
+                <div class="box">
+                    <strong>Migrate Profile</strong>
+                    <p>
+                        This profile may have been encrypted with an old version of Firecrypt.
+                        You must migrate it to the latest version if you want to use it.
+                        Migrate now?
+                    </p>
+                    <button
+                        @mouseleave="$event.target.blur()"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                if (
+                                    await message(
+                                        'migrate-profile',
+                                        selectProfile.path,
+                                        unlockProfile.password
+                                    )
+                                ) {
+                                    state = 'configure-profile'
+                                } else {
+                                    state = 'decrypt-failed'
+                                }
+
+                                unlockProfile.password = ''
+                            })()
+                        "
+                    >Yes</button>
+                    <button
+                        @mouseleave="$event.target.blur()"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                unlockProfile.password = ''
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
+                    >No</button>
+                </div>
+            </template>
+            <template x-if="state === 'unsupported-profile'">
+                <div class="box">
+                    <strong>Cannot unlock this profile!</strong>
+                    <p>
+                        This profile cannot be unlocked because it is unsupported.
+                        It may have been locked using a unsupported of Firecrypt.
+                        Try unlocking it with the version of Firecrypt that locked it.
+                    </p>
+                    <button
+                        @mouseleave="$event.target.blur()"
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                unlockProfile.password = ''
+                                profiles = await message('load-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
+                    >OK</button>
                 </div>
             </template>
         </div>
