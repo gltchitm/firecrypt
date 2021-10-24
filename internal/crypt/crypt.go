@@ -235,7 +235,7 @@ func UnlockProfile(profilePath, password string) bool {
 	}
 
 	readBytesFromFile(*encrypted, len(magicVerionPrefix))
-	salt := readBytesFromFile(*encrypted, 32)
+	salt := readBytesFromFile(*encrypted, argon2SaltLen)
 	nonce := readBytesFromFile(*encrypted, chacha20poly1305.NonceSizeX)
 	encryptedZipData := readBytesFromFileUntilEOF(*encrypted)
 
