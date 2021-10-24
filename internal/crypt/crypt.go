@@ -50,7 +50,7 @@ func GetProfileMigrationStatus(profilePath string) int {
 		return ProfileMigrationStatusMigratable
 	}
 }
-func MigrateProfile(profilePath string, password string) bool {
+func MigrateProfile(profilePath, password string) bool {
 	hash := sha512.Sum512([]byte(password))
 	for i := 0; i < 249999; i++ {
 		hash = sha512.Sum512(hash[:])
@@ -192,7 +192,12 @@ func LockProfile(profilePath string) bool {
 		panic(err)
 	}
 
-	readBytesFromFile(*hashFile, len(magicVerionPrefix))
+	for i, v := range readBytesFromFile(*hashFile, len(magicVerionPrefix)) {
+		if v != magicVerionPrefix[i] {
+			panic("magic version prefix does not match in key file")
+		}
+	}
+
 	salt := readBytesFromFile(*hashFile, argon2SaltLen)
 	key := readBytesFromFile(*hashFile, argon2KeyLen)
 
