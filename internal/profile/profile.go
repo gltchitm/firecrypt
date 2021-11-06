@@ -56,7 +56,6 @@ func LaunchProfile(profileName string) {
 
 func firefoxPath() string {
 	home, err := os.UserHomeDir()
-
 	if err != nil {
 		panic(err)
 	}
@@ -98,6 +97,7 @@ func profilesFromConfig(cfg *ini.File) []Profile {
 			_, err = os.Stat(profilePath + ".firecrypt")
 			if errors.Is(err, fs.ErrNotExist) {
 				currentlyEncrypted = false
+
 				_, err = os.Stat(path.Join(profilePath, ".__firecrypt_key__"))
 				if errors.Is(err, fs.ErrNotExist) {
 					configured = false

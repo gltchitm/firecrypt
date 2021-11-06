@@ -81,7 +81,6 @@ func MigrateProfile(profilePath, password string) bool {
 	cmd.Dir = filepath.Dir(profilePath)
 
 	err := cmd.Run()
-
 	if err != nil {
 		cmd = exec.Command(
 			"rm",
@@ -90,7 +89,8 @@ func MigrateProfile(profilePath, password string) bool {
 				filepath.Base(profilePath)+".zip",
 			),
 		)
-		cmd.Run()
+
+		err = cmd.Run()
 		if err != nil {
 			panic(err)
 		}
@@ -106,6 +106,7 @@ func MigrateProfile(profilePath, password string) bool {
 		),
 	)
 	cmd.Dir = filepath.Dir(profilePath)
+
 	err = cmd.Run()
 	if err != nil {
 		panic(err)
@@ -118,6 +119,7 @@ func MigrateProfile(profilePath, password string) bool {
 			filepath.Base(profilePath)+".zip",
 		),
 	)
+
 	err = cmd.Run()
 	if err != nil {
 		panic(err)
@@ -130,12 +132,17 @@ func MigrateProfile(profilePath, password string) bool {
 			filepath.Base(profilePath)+".firecrypt",
 		),
 	)
+
 	err = cmd.Run()
 	if err != nil {
 		panic(err)
 	}
 
-	os.Remove(filepath.Join(profilePath, ".__firecrypt_hash__"))
+	err = os.Remove(filepath.Join(profilePath, ".__firecrypt_hash__"))
+	if err != nil {
+		panic(err)
+	}
+
 	SetPassword(profilePath, password)
 
 	return true
@@ -146,7 +153,10 @@ func LockProfile(profilePath string) bool {
 		panic(err)
 	}
 
-	os.Chdir(filepath.Dir(profilePath))
+	err = os.Chdir(filepath.Dir(profilePath))
+	if err != nil {
+		panic(err)
+	}
 
 	zipOutput := new(bytes.Buffer)
 
@@ -156,6 +166,7 @@ func LockProfile(profilePath string) bool {
 		if err != nil {
 			panic(err)
 		}
+
 		if info.IsDir() {
 			return nil
 		}
@@ -184,17 +195,25 @@ func LockProfile(profilePath string) bool {
 		panic(err)
 	}
 
-	zipWriter.Close()
+	err = zipWriter.Close()
+	if err != nil {
+		panic(err)
+	}
 
 	hashFile, err := os.Open(path.Join(profilePath, ".__firecrypt_key__"))
-	defer hashFile.Close()
+	defer func() {
+		err = hashFile.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		panic(err)
 	}
 
 	for i, v := range readBytesFromFile(*hashFile, len(magicVerionPrefix)) {
 		if v != magicVerionPrefix[i] {
-			panic("magic version prefix does not match in key file")
+			panic("magic version prefix in key file does not match!")
 		}
 	}
 
@@ -210,8 +229,16 @@ func LockProfile(profilePath string) bool {
 	encryptedZipData := cipher.Seal(nonce, nonce, zipOutput.Bytes(), nil)
 
 	output, err := os.Create(filepath.Base(profilePath) + ".firecrypt")
+	if err != nil {
+		panic(err)
+	}
 
-	defer output.Close()
+	defer func() {
+		err = output.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	writeBytesToFile(*output, []byte(magicVerionPrefix))
 	writeBytesToFile(*output, salt)
@@ -232,7 +259,10 @@ func UnlockProfile(profilePath, password string) bool {
 		panic(err)
 	}
 
-	os.Chdir(filepath.Dir(profilePath))
+	err = os.Chdir(filepath.Dir(profilePath))
+	if err != nil {
+		panic(err)
+	}
 
 	encrypted, err := os.Open(filepath.Base(profilePath) + ".firecrypt")
 	if err != nil {
@@ -291,13 +321,23 @@ func UnlockProfile(profilePath, password string) bool {
 		}
 
 		outputFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-		defer outputFile.Close()
+		defer func() {
+			err = outputFile.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 		if err != nil {
 			panic(err)
 		}
 
 		copySrc, err := file.Open()
-		defer copySrc.Close()
+		defer func() {
+			err = copySrc.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 		if err != nil {
 			panic(err)
 		}
@@ -319,7 +359,12 @@ func UnlockProfile(profilePath, password string) bool {
 }
 func SetPassword(profilePath string, password string) {
 	hashFile, err := os.Create(path.Join(profilePath, ".__firecrypt_key__"))
-	defer hashFile.Close()
+	defer func() {
+		err = hashFile.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		panic(err)
 	}
@@ -351,7 +396,7 @@ func randomBytes(length int) []byte {
 func writeBytesToFile(file os.File, bytes []byte) {
 	bytesWritten, err := file.Write(bytes)
 	if bytesWritten != len(bytes) {
-		panic("too few bytes written!")
+		panic("not enough bytes written!")
 	} else if err != nil {
 		panic(err)
 	}

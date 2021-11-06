@@ -22,7 +22,11 @@ type DecodedMessage struct {
 
 func decodeMessage(message *astilectron.EventMessage) DecodedMessage {
 	var data string
-	message.Unmarshal(&data)
+
+	err := message.Unmarshal(&data)
+	if err != nil {
+		panic(err)
+	}
 
 	splitData := strings.Split(data, ",")
 
@@ -54,10 +58,9 @@ func main() {
 	app, err := astilectron.New(logger, astilectron.Options{
 		AppName:           "Firecrypt",
 		BaseDirectoryPath: "firecrypt",
-		VersionElectron:   "15.1.2",
+		VersionElectron:   "15.3.0",
 		AppIconDarwinPath: path.Join(wd, "./electron/resources/icon/icon.icns"),
 	})
-
 	if err != nil {
 		panic(err)
 	}
@@ -65,6 +68,7 @@ func main() {
 	defer app.Close()
 
 	app.HandleSignals()
+
 	err = app.Start()
 	if err != nil {
 		panic(err)
@@ -89,9 +93,13 @@ func main() {
 			Label: astikit.StrPtr("Firecrypt"),
 		},
 	})
-	menu.Create()
 
-	window.Create()
+	err = menu.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = window.Create()
 	if err != nil {
 		panic(err)
 	}
@@ -101,7 +109,7 @@ func main() {
 
 		if decodedMessage.Name == "is-macos" {
 			return runtime.GOOS == "darwin"
-		} else if decodedMessage.Name == "load-profiles" {
+		} else if decodedMessage.Name == "get-profiles" {
 			return profile.GetProfiles()
 		} else if decodedMessage.Name == "acquire-profile-lock" {
 			return profile.AcquireProfileLock(decodedMessage.Detail[0])

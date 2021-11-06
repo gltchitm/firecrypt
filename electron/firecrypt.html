@@ -29,7 +29,7 @@
             x-init="
                 (async () => {
                     if (await message('is-macos')) {
-                        profiles = await message('load-profiles')
+                        profiles = await message('get-profiles')
                         state = 'select-profile'
                     } else {
                         alert('Sorry, only macOS is currently supported.')
@@ -131,7 +131,7 @@
                                     }
 
                                     unlockProfile.password = ''
-                                    profiles = await message('load-profiles')
+                                    profiles = await message('get-profiles')
                                 } else if (migrationStatus === 'migratable') {
                                     state = 'migrate-profile'
                                 } else {
@@ -149,7 +149,7 @@
                                 state = 'loading'
                                 unlockProfile.password = ''
                                 await message('release-profile-lock')
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -160,8 +160,8 @@
                 <div class="box">
                     <strong>Disclaimer</strong>
                     <p>
-                        This is highly experimental software! 
-                        Using it may result in permanent data loss. 
+                        This is highly experimental software!
+                        Using it may result in permanent data loss.
                         Cryptographic security is not a guarentee.
                         Are you sure you want to proceed?
                     </p>
@@ -175,7 +175,7 @@
                             (async () => {
                                 state = 'loading'
                                 await message('release-profile-lock')
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -220,7 +220,7 @@
                                 configureProfile.password = ''
                                 configureProfile.confirmPassword = ''
 
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
 
                                 state = 'configure-profile'
                             })()
@@ -241,7 +241,7 @@
                                 configureProfile.confirmPassword = ''
                                 if (state === 'setup-profile') {
                                     await message('release-profile-lock')
-                                    profiles = await message('load-profiles')
+                                    profiles = await message('get-profiles')
                                     state = 'select-profile'
                                 } else {
                                     state = 'configure-profile'
@@ -266,7 +266,7 @@
                                     'lock-profile',
                                     selectProfile.path
                                 )
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -285,7 +285,7 @@
                             (async () => {
                                 state = 'loading'
                                 await message('release-profile-lock')
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -321,7 +321,7 @@
                         @click="
                             (async () => {
                                 state = 'loading'
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -363,7 +363,7 @@
                             (async () => {
                                 state = 'loading'
                                 unlockProfile.password = ''
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
@@ -384,7 +384,7 @@
                             (async () => {
                                 state = 'loading'
                                 unlockProfile.password = ''
-                                profiles = await message('load-profiles')
+                                profiles = await message('get-profiles')
                                 state = 'select-profile'
                             })()
                         "
