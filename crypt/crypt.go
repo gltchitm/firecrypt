@@ -4,12 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/rand"
-	"crypto/sha512"
-	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -35,7 +31,9 @@ const (
 )
 
 func GetProfileMigrationStatus(profilePath string) int {
-	fileContents, err := ioutil.ReadFile(path.Join(
+	prefix := make([]byte, len(magicVerionPrefix))
+
+	file, err := os.Open(path.Join(
 		filepath.Dir(profilePath),
 		filepath.Base(profilePath)+".firecrypt",
 	))
@@ -43,109 +41,21 @@ func GetProfileMigrationStatus(profilePath string) int {
 		panic(err)
 	}
 
-	if strings.HasPrefix(string(fileContents), magicVerionPrefix) {
-		os.Remove(filepath.Join(profilePath, ".__firecrypt_hash__"))
+	_, err = io.ReadFull(file, prefix)
+	if err == io.ErrUnexpectedEOF {
+		return ProfileMigrationStatusUnsupported
+	} else if err != nil {
+		panic(err)
+	}
+
+	if string(prefix) == magicVerionPrefix {
 		return ProfileMigrationStatusSupported
 	} else {
-		return ProfileMigrationStatusMigratable
+		return ProfileMigrationStatusUnsupported
 	}
 }
 func MigrateProfile(profilePath, password string) bool {
-	hash := sha512.Sum512([]byte(password))
-	for i := 0; i < 249999; i++ {
-		hash = sha512.Sum512(hash[:])
-	}
-	key := base64.StdEncoding.EncodeToString(hash[:])
-
-	cmd := exec.Command(
-		"openssl",
-		"aes-256-cbc",
-		"-d",
-		"-pbkdf2",
-		"-iter",
-		"250000",
-		"-in",
-		path.Join(
-			filepath.Dir(profilePath),
-			filepath.Base(profilePath)+".firecrypt",
-		),
-		"-out",
-		path.Join(
-			filepath.Dir(profilePath),
-			filepath.Base(profilePath)+".zip",
-		),
-		"-k",
-		key,
-	)
-
-	cmd.Dir = filepath.Dir(profilePath)
-
-	err := cmd.Run()
-	if err != nil {
-		cmd = exec.Command(
-			"rm",
-			path.Join(
-				filepath.Dir(profilePath),
-				filepath.Base(profilePath)+".zip",
-			),
-		)
-
-		err = cmd.Run()
-		if err != nil {
-			panic(err)
-		}
-
-		return false
-	}
-
-	cmd = exec.Command(
-		"unzip",
-		path.Join(
-			filepath.Dir(profilePath),
-			filepath.Base(profilePath)+".zip",
-		),
-	)
-	cmd.Dir = filepath.Dir(profilePath)
-
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-
-	cmd = exec.Command(
-		"rm",
-		path.Join(
-			filepath.Dir(profilePath),
-			filepath.Base(profilePath)+".zip",
-		),
-	)
-
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-
-	cmd = exec.Command(
-		"rm",
-		path.Join(
-			filepath.Dir(profilePath),
-			filepath.Base(profilePath)+".firecrypt",
-		),
-	)
-
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.Remove(filepath.Join(profilePath, ".__firecrypt_hash__"))
-	if err != nil {
-		panic(err)
-	}
-
-	SetPassword(profilePath, password)
-
-	return true
+	return false
 }
 func LockProfile(profilePath string) bool {
 	originalWd, err := os.Getwd()
@@ -211,14 +121,12 @@ func LockProfile(profilePath string) bool {
 		panic(err)
 	}
 
-	for i, v := range readBytesFromFile(*hashFile, len(magicVerionPrefix)) {
-		if v != magicVerionPrefix[i] {
-			panic("magic version prefix in key file does not match!")
-		}
+	if string(readBytesFromFile(hashFile, len(magicVerionPrefix))) != magicVerionPrefix {
+		panic("magic version prefix in key file does not match!")
 	}
 
-	salt := readBytesFromFile(*hashFile, argon2SaltLen)
-	key := readBytesFromFile(*hashFile, argon2KeyLen)
+	salt := readBytesFromFile(hashFile, argon2SaltLen)
+	key := readBytesFromFile(hashFile, argon2KeyLen)
 
 	cipher, err := chacha20poly1305.NewX(key)
 	if err != nil {
@@ -240,9 +148,9 @@ func LockProfile(profilePath string) bool {
 		}
 	}()
 
-	writeBytesToFile(*output, []byte(magicVerionPrefix))
-	writeBytesToFile(*output, salt)
-	writeBytesToFile(*output, encryptedZipData)
+	writeBytesToFile(output, []byte(magicVerionPrefix))
+	writeBytesToFile(output, salt)
+	writeBytesToFile(output, encryptedZipData)
 
 	err = os.RemoveAll(filepath.Base(profilePath))
 	if err != nil {
@@ -269,10 +177,10 @@ func UnlockProfile(profilePath, password string) bool {
 		panic(err)
 	}
 
-	readBytesFromFile(*encrypted, len(magicVerionPrefix))
-	salt := readBytesFromFile(*encrypted, argon2SaltLen)
-	nonce := readBytesFromFile(*encrypted, chacha20poly1305.NonceSizeX)
-	encryptedZipData := readBytesFromFileUntilEOF(*encrypted)
+	readBytesFromFile(encrypted, len(magicVerionPrefix))
+	salt := readBytesFromFile(encrypted, argon2SaltLen)
+	nonce := readBytesFromFile(encrypted, chacha20poly1305.NonceSizeX)
+	encryptedZipData := readBytesFromFileUntilEOF(encrypted)
 
 	key := argon2.IDKey(
 		[]byte(password),
@@ -321,28 +229,26 @@ func UnlockProfile(profilePath, password string) bool {
 		}
 
 		outputFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-		defer func() {
-			err = outputFile.Close()
-			if err != nil {
-				panic(err)
-			}
-		}()
 		if err != nil {
 			panic(err)
 		}
 
 		copySrc, err := file.Open()
-		defer func() {
-			err = copySrc.Close()
-			if err != nil {
-				panic(err)
-			}
-		}()
 		if err != nil {
 			panic(err)
 		}
 
 		_, err = io.Copy(outputFile, copySrc)
+		if err != nil {
+			panic(err)
+		}
+
+		err = outputFile.Close()
+		if err != nil {
+			panic(err)
+		}
+
+		err = copySrc.Close()
 		if err != nil {
 			panic(err)
 		}
@@ -379,9 +285,9 @@ func SetPassword(profilePath string, password string) {
 		argon2KeyLen,
 	)
 
-	writeBytesToFile(*hashFile, []byte(magicVerionPrefix))
-	writeBytesToFile(*hashFile, salt)
-	writeBytesToFile(*hashFile, key)
+	writeBytesToFile(hashFile, []byte(magicVerionPrefix))
+	writeBytesToFile(hashFile, salt)
+	writeBytesToFile(hashFile, key)
 }
 
 func randomBytes(length int) []byte {
@@ -393,7 +299,7 @@ func randomBytes(length int) []byte {
 
 	return bytes
 }
-func writeBytesToFile(file os.File, bytes []byte) {
+func writeBytesToFile(file *os.File, bytes []byte) {
 	bytesWritten, err := file.Write(bytes)
 	if bytesWritten != len(bytes) {
 		panic("not enough bytes written!")
@@ -401,28 +307,20 @@ func writeBytesToFile(file os.File, bytes []byte) {
 		panic(err)
 	}
 }
-func readBytesFromFile(file os.File, length int) []byte {
+func readBytesFromFile(file *os.File, length int) []byte {
 	output := make([]byte, length)
-	bytesRead, err := file.Read(output)
-	if bytesRead != length || err != nil {
+
+	_, err := io.ReadFull(file, output)
+	if err != nil {
 		panic(err)
 	}
+
 	return output
 }
-func readBytesFromFileUntilEOF(file os.File) []byte {
-	output := make([]byte, 0)
-
-	for true {
-		readByte := make([]byte, 1)
-		_, err := file.Read(readByte)
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			panic(err)
-		}
-
-		output = append(output, readByte[0])
+func readBytesFromFileUntilEOF(file *os.File) []byte {
+	output, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
 	}
 
 	return output

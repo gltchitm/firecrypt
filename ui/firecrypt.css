@@ -5,6 +5,8 @@ body {
     background-color: #1b262c;
     font-family: Helvetica;
     user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
     overflow: hidden;
     padding: 0 3px;
 }
@@ -20,6 +22,21 @@ button {
     overflow: scroll;
     height: 200px;
     margin: 7px 0;
+}
+.profile {
+    display: flex;
+    align-items: center;
+}
+.profile > input[type="radio"], .profile > label {
+    padding: 0;
+    margin: 0;
+}
+.profile > input[type="radio"] {
+    margin-left: 5px;
+    margin-right: 10px;
+}
+.profile {
+    margin-bottom: 5px;
 }
 .box > strong {
     font-size: 15px;

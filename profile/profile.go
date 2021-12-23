@@ -4,22 +4,22 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/gltchitm/firecrypt/native"
 	"github.com/gofrs/flock"
 	"gopkg.in/ini.v1"
 )
 
 type Profile struct {
-	Id                 int
-	Name               string
-	Path               string
-	Configured         bool
-	CurrentlyEncrypted bool
+	Id                 int    `json:"id"`
+	Name               string `json:"name"`
+	Path               string `json:"path"`
+	Configured         bool   `json:"configured"`
+	CurrentlyEncrypted bool   `json:"currentlyEncrypted"`
 }
 
 var profileLock *flock.Flock
@@ -44,14 +44,10 @@ func ReleaseProfileLock() {
 	}
 }
 func LaunchProfile(profileName string) {
-	_, err := exec.Command(
-		"/Applications/Firefox.app/Contents/MacOS/firefox",
-		"-p",
-		profileName,
-	).Output()
-	if err != nil {
-		panic(err)
-	}
+	lockedPath := profileLock.Path()
+	ReleaseProfileLock()
+	native.RunFirefox(profileName)
+	AcquireProfileLock(lockedPath)
 }
 
 func firefoxPath() string {

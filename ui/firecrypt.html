@@ -3,8 +3,8 @@
     <head>
         <meta charset="utf-8" />
         <script src="./firecrypt.js"></script>
-        <script src="./resources/vendor/js/alpine.min.js" defer></script>
-        <link rel="stylesheet" href="./resources/vendor/css/milligram.min.css" />
+        <script src="./vendor/js/alpine.min.js" defer></script>
+        <link rel="stylesheet" href="./vendor/css/milligram.min.css" />
         <link rel="stylesheet" href="./firecrypt.css" />
     </head>
     <body>
@@ -28,13 +28,8 @@
             "
             x-init="
                 (async () => {
-                    if (await message('is-macos')) {
-                        profiles = await message('get-profiles')
-                        state = 'select-profile'
-                    } else {
-                        alert('Sorry, only macOS is currently supported.')
-                        window.close()
-                    }
+                    profiles = await message('get-profiles')
+                    state = 'select-profile'
                 })()
             "
             x-cloak
@@ -52,12 +47,12 @@
                                     type="radio"
                                     name="profile"
                                     x-model="selectProfile.path"
-                                    :value="profile.Path"
+                                    :value="profile.path"
                                     :id="'profile' + index"
                                 />
                                 <label
                                     class="label-inline"
-                                    x-text="profile.Name"
+                                    x-text="profile.name"
                                     :for="'profile' + index"
                                 ></label>
                             </div>
@@ -69,15 +64,15 @@
                             (async () => {
                                 state = 'loading'
                                 if (await message('acquire-profile-lock', selectProfile.path)) {
-                                    selectProfile.profile = profiles.find(({ Path }) => {
-                                        return Path === selectProfile.path
+                                    selectProfile.profile = profiles.find(({ path }) => {
+                                        return path === selectProfile.path
                                     })
-                                    if (selectProfile.profile.CurrentlyEncrypted) {
+                                    if (selectProfile.profile.currentlyEncrypted) {
                                         state = 'unlock-profile'
-                                    } else if (selectProfile.profile.Configured) {
+                                    } else if (selectProfile.profile.configured) {
                                         state = 'configure-profile'
                                     } else {
-                                        state = 'disclaimer'
+                                        state = 'setup-profile'
                                     }
                                 } else {
                                     state = 'profile-already-open'
@@ -120,10 +115,7 @@
                                     ) {
                                         await message(
                                             'launch-profile',
-                                            selectProfile.profile.Name)
-                                        await message(
-                                            'acquire-profile-lock',
-                                            selectProfile.path
+                                            selectProfile.profile.name
                                         )
                                         state = 'configure-profile'
                                     } else {
@@ -154,32 +146,6 @@
                             })()
                         "
                     >Back</button>
-                </div>
-            </template>
-            <template x-if="state === 'disclaimer'">
-                <div class="box">
-                    <strong>Disclaimer</strong>
-                    <p>
-                        This is highly experimental software!
-                        Using it may result in permanent data loss.
-                        Cryptographic security is not a guarentee.
-                        Are you sure you want to proceed?
-                    </p>
-                    <button
-                        @mouseleave="$event.target.blur()"
-                        @click="state = 'setup-profile'"
-                    >Yes</button>
-                    <button
-                        @mouseleave="$event.target.blur()"
-                        @click="
-                            (async () => {
-                                state = 'loading'
-                                await message('release-profile-lock')
-                                profiles = await message('get-profiles')
-                                state = 'select-profile'
-                            })()
-                        "
-                    >No</button>
                 </div>
             </template>
             <template x-if="state === 'setup-profile' || state === 'change-password'">
@@ -236,10 +202,10 @@
                         @mouseleave="$event.target.blur()"
                         @click="
                             (async () => {
-                                state = 'loading'
                                 configureProfile.password = ''
                                 configureProfile.confirmPassword = ''
                                 if (state === 'setup-profile') {
+                                    state = 'loading'
                                     await message('release-profile-lock')
                                     profiles = await message('get-profiles')
                                     state = 'select-profile'
@@ -255,7 +221,7 @@
                 <div class="box">
                     <strong>Configure Profile</strong>
                     <p>
-                        Profile Name: <span x-text="selectProfile.profile.Name"></span>
+                        Profile Name: <span x-text="selectProfile.profile.name"></span>
                     </p>
                     <button
                         @mouseleave="$event.target.blur()"
@@ -273,7 +239,7 @@
                     >Lock Profile</button>
                     <button
                         @mouseleave="$event.target.blur()"
-                        @click="message('launch-profile', selectProfile.profile.Name)"
+                        @click="message('launch-profile', selectProfile.profile.name)"
                     >Launch</button>
                     <button
                         @mouseleave="$event.target.blur()"
@@ -292,14 +258,20 @@
                     >Back</button>
                 </div>
             </template>
-            <template x-if="state === 'select-profile' && profiles.length === 0">
+            <template x-if="state === 'select-profile' && !profiles.length">
                 <div class="box">
-                    <strong>Could not find any profiles!</strong>
+                    <strong>No Profiles</strong>
                     <p>Make sure Firefox is installed and configured.</p>
                     <button
                         @mouseleave="$event.target.blur()"
-                        @click="window.close()"
-                    >Exit</button>
+                        @click="
+                            (async () => {
+                                state = 'loading'
+                                profiles = await message('get-profiles')
+                                state = 'select-profile'
+                            })()
+                        "
+                    >Try Again</button>
                 </div>
             </template>
             <template x-if="state === 'decrypt-failed'">
@@ -314,7 +286,7 @@
             </template>
             <template x-if="state === 'profile-already-open'">
                 <div class="box">
-                    <strong>Profile already open!</strong>
+                    <strong>Profile In Use</strong>
                     <p>This profile is already being used.</p>
                     <button
                         @mouseleave="$event.target.blur()"
@@ -372,11 +344,12 @@
             </template>
             <template x-if="state === 'unsupported-profile'">
                 <div class="box">
-                    <strong>Cannot unlock this profile!</strong>
+                    <strong>Unsupported Profile</strong>
                     <p>
-                        This profile cannot be unlocked because it is unsupported.
-                        It may have been locked using a unsupported of Firecrypt.
-                        Try unlocking it with the version of Firecrypt that locked it.
+                        This profile is unsupported and cannot be unlocked.
+                        It may have been locked with an unsupported of Firecrypt.
+                        Try unlocking it with the Firecrypt version that locked it
+                        or a Firecrypt version that can migrate it.
                     </p>
                     <button
                         @mouseleave="$event.target.blur()"
