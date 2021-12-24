@@ -16,7 +16,8 @@ extern char* onMessage(char*);
     @property (retain) WKWebView* webView;
 @end
 
-dispatch_semaphore_t semaphore;
+bool firefoxRunning = false;
+NSImage* icon;
 
 @implementation AppDelegate
     -(instancetype)init {
@@ -116,15 +117,20 @@ dispatch_semaphore_t semaphore;
             [object removeObserver:self forKeyPath:keyPath];
             [(NSRunningApplication*) firefox release];
 
-            dispatch_semaphore_signal(semaphore);
+            NSApplication* application = [NSApplication sharedApplication];
+            [application setActivationPolicy:NSApplicationActivationPolicyRegular];
+            [application activateIgnoringOtherApps:YES];
+
+            #ifndef FIRECRYPT_RELEASE
+            [application setApplicationIconImage:icon];
+            #endif
+
+            firefoxRunning = false;
         }
     }
 @end
 
 bool started = false;
-bool firefoxRunning = false;
-
-NSImage* icon;
 
 void StartFirecrypt() {
     if (started) {
@@ -136,8 +142,6 @@ void StartFirecrypt() {
     #endif
 
     started = true;
-
-    semaphore = dispatch_semaphore_create(0);
 
     NSApplication* application = [NSApplication sharedApplication];
 
@@ -184,15 +188,4 @@ void RunFirefox(char* profileName) {
                                                        options:0
                                                        context:firefox];
                                       }];
-
-    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-
-    [application setActivationPolicy:NSApplicationActivationPolicyRegular];
-    [application activateIgnoringOtherApps:YES];
-
-    #ifndef FIRECRYPT_RELEASE
-    [application setApplicationIconImage:icon];
-    #endif
-
-    firefoxRunning = false;
 }

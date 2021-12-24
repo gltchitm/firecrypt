@@ -33,7 +33,7 @@ func main() {
 		} else if name == "unlock-profile" {
 			return crypt.UnlockProfile(detail[0], detail[1])
 		} else if name == "launch-profile" {
-			go profile.LaunchProfile(detail[0])
+			profile.LaunchProfile(detail[0])
 		}
 
 		return nil

@@ -45,7 +45,6 @@ mkdir -p release/darwin/Firecrypt.app/Contents
 mkdir release/darwin/Firecrypt.app/Contents/MacOS
 mkdir release/darwin/Firecrypt.app/Contents/Resources
 
-
 set +e
 version=$(git describe --tags --abbrev=0 2>/dev/null)
 set -e
