@@ -23,5 +23,4 @@ jobs:
               uses: softprops/action-gh-release@v1
               with:
                   name: Release ${{ github.ref_name }}
-                  body: ${{ github.event.commits[0].message }}
                   files: ./release/darwin/Firecrypt.zip
