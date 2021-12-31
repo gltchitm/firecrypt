@@ -11,18 +11,21 @@ After executing Firecrypt, choose a profile from the list. If the profile has no
 This program is highly experimental! Cryptographic security is not a guarantee and data loss may occur.
 
 ## Important Notes
-- Firecrypt currently only supports macOS.
+- Firecrypt currently only supports macOS and Linux.
 - After opening a profile, Firecrypt will hide itself but will still be running. It will reappear once you quit Firefox.
 - To completely remove a profile from Firecrypt, you must unlock it and remove the `.__firecrypt_key__` file in the profile directory. This file is hidden from the Finder so you should delete it using a terminal.
 - If you launch a Firefox profile while it is encrypted, you will receive the error "Your Firefox profile cannot be loaded. It may be missing or inaccessible."
 - If you launch a Firefox profile while it is being configured in Firecrypt, you will receive the error "A copy of Firefox is already open. Only one copy of Firefox can be open at a time."
-- Firecrypt can currently only launch Firefox installations located at `/Applications/Firefox`.
+- Firecrypt can currently only launch Firefox installations located at `/Applications/Firefox` on macOS and `/usr/bin/firefox` on Linux.
 
 ## Legacy Profiles
 Legacy profiles (pre-V2) are no longer supported. You can use [this version of Firecrypt](https://github.com/gltchitm/firecrypt/tree/69b87376d4c7c8e05a6e0c4db1339d51b5a3002f) to migrate legacy profiles to Version 2, at which point they can be used in the latest version of Firecrypt.
 
 ## To-Do
 - [ ] Add support for other operating systems
+    - [x] macOS
+    - [x] Linux
+    - [ ] Windows
 - [ ] Add support for launching other Firefox installations
 - [ ] Add support for profiles in other locations
 - [ ] Add duress profiles

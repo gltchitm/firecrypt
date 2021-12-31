@@ -19,7 +19,7 @@ button {
 .profiles {
     border: 1px solid #d9d4d0;
     border-radius: 2px;
-    overflow: scroll;
+    overflow: auto;
     height: 200px;
     margin: 7px 0;
 }

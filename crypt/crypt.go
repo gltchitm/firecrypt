@@ -77,7 +77,7 @@ func LockProfile(profilePath string) bool {
 			panic(err)
 		}
 
-		if info.IsDir() {
+		if info.IsDir() || filepath.Base(path) == "lock" {
 			return nil
 		}
 
@@ -87,10 +87,10 @@ func LockProfile(profilePath string) bool {
 		}
 
 		copySrc, err := os.Open(path)
-		defer copySrc.Close()
 		if err != nil {
 			return err
 		}
+		defer copySrc.Close()
 
 		_, err = io.Copy(file, copySrc)
 		if err != nil {

@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,7 +57,14 @@ func firefoxPath() string {
 		panic(err)
 	}
 
-	return path.Join(home, "Library/Application Support/Firefox")
+	var relativePath string
+	if runtime.GOOS == "darwin" {
+		relativePath = "Library/Application Support/Firefox"
+	} else if runtime.GOOS == "linux" {
+		relativePath = ".mozilla/firefox"
+	}
+
+	return path.Join(home, relativePath)
 }
 func profilesFromConfig(cfg *ini.File) []Profile {
 	sections := cfg.Sections()
