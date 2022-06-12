@@ -42,7 +42,7 @@ NSImage* icon;
 
         self.webView = [[WKWebView alloc] init];
 
-        #ifdef FIRECRYPT_RELEASE
+#ifdef FIRECRYPT_RELEASE
         NSString* scriptSource = [NSString stringWithFormat:@"window.__FIRECRYPT_RELEASE = true"];
         [self.webView evaluateJavaScript:scriptSource
                        completionHandler:^(NSString* result, NSError* error) {
@@ -50,14 +50,14 @@ NSImage* icon;
                                CRASH("failed to set release flag!");
                            }
                        }];
-        #endif
+#endif
 
-        #ifdef FIRECRYPT_RELEASE
+#ifdef FIRECRYPT_RELEASE
         NSBundle* bundle = [NSBundle mainBundle];
         [self.webView loadFileURL:[bundle URLForResource:@"firecrypt"
                                            withExtension:@"html"]
           allowingReadAccessToURL:[bundle resourceURL]];
-        #else
+#else
         NSURL* pwd = [NSURL fileURLWithPath:[[NSFileManager defaultManager] currentDirectoryPath]];
 
         [self.webView loadFileURL:[NSURL fileURLWithPath:@"ui/firecrypt.html"
@@ -66,7 +66,7 @@ NSImage* icon;
                                            relativeToURL:pwd]];
         [[[self.webView configuration] preferences] setValue:@YES
                                                       forKey:@"developerExtrasEnabled"];
-        #endif
+#endif
 
         [self.webView setValue:@NO forKey:@"drawsBackground"];
         [[[self.webView configuration] userContentController] addScriptMessageHandler:self
@@ -149,10 +149,10 @@ void StartFirecrypt() {
     [application setActivationPolicy:NSApplicationActivationPolicyRegular];
     [application setDelegate:applicationDelegate];
 
-    #ifndef FIRECRYPT_RELEASE
+#ifndef FIRECRYPT_RELEASE
     icon = [[NSImage alloc] initWithContentsOfFile:@"icon/darwin/icon.png"];
     [application setApplicationIconImage:icon];
-    #endif
+#endif
 
     [application run];
 }

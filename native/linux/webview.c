@@ -42,11 +42,11 @@ void message(WebKitUserContentManager* mananger, WebKitJavascriptResult* value, 
     free(script);
 }
 void load_changed(WebKitWebView* webview, WebKitLoadEvent load_event, gpointer load_data) {
-    #ifdef FIRECRYPT_RELEASE
+#ifdef FIRECRYPT_RELEASE
     if (load_event == WEBKIT_LOAD_COMMITTED) {
         webkit_web_view_run_javascript(WEBKIT_WEB_VIEW(webview), "window.__FIRECRYPT_RELEASE = true", NULL, NULL, NULL);
     }
-    #endif
+#endif
 }
 void StartFirecrypt() {
     if (started) {
@@ -55,9 +55,9 @@ void StartFirecrypt() {
 
     started = true;
 
-    #ifndef FIRECRYPT_RELEASE
+#ifndef FIRECRYPT_RELEASE
     printf("this is a debug build. issues not present in release builds may occur.\n");
-    #endif
+#endif
 
     gtk_init(0, NULL);
 
@@ -71,10 +71,10 @@ void StartFirecrypt() {
 
     webview = webkit_web_view_new_with_context(webkit_web_context_new_ephemeral());
 
-    #ifndef FIRECRYPT_RELEASE
+#ifndef FIRECRYPT_RELEASE
     WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview));
     webkit_settings_set_enable_developer_extras(settings, TRUE);
-    #endif
+#endif
 
     WebKitUserContentManager* manager = webkit_web_view_get_user_content_manager(WEBKIT_WEB_VIEW(webview));
 

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-const magicVerionPrefix string = "@@5c53512d-FIRECRYPT-VERSION-2-6062fceb@@\n\n\n"
+const magicVersionPrefix string = "@@5c53512d-FIRECRYPT-VERSION-2-6062fceb@@\n\n\n"
 
 const (
 	ProfileMigrationStatusSupported = iota
@@ -31,7 +31,7 @@ const (
 )
 
 func GetProfileMigrationStatus(profilePath string) int {
-	prefix := make([]byte, len(magicVerionPrefix))
+	prefix := make([]byte, len(magicVersionPrefix))
 
 	file, err := os.Open(path.Join(
 		filepath.Dir(profilePath),
@@ -48,7 +48,7 @@ func GetProfileMigrationStatus(profilePath string) int {
 		panic(err)
 	}
 
-	if string(prefix) == magicVerionPrefix {
+	if string(prefix) == magicVersionPrefix {
 		return ProfileMigrationStatusSupported
 	} else {
 		return ProfileMigrationStatusUnsupported
@@ -121,7 +121,7 @@ func LockProfile(profilePath string) bool {
 		panic(err)
 	}
 
-	if string(readBytesFromFile(hashFile, len(magicVerionPrefix))) != magicVerionPrefix {
+	if string(readBytesFromFile(hashFile, len(magicVersionPrefix))) != magicVersionPrefix {
 		panic("magic version prefix in key file does not match!")
 	}
 
@@ -148,7 +148,7 @@ func LockProfile(profilePath string) bool {
 		}
 	}()
 
-	writeBytesToFile(output, []byte(magicVerionPrefix))
+	writeBytesToFile(output, []byte(magicVersionPrefix))
 	writeBytesToFile(output, salt)
 	writeBytesToFile(output, encryptedZipData)
 
@@ -177,7 +177,7 @@ func UnlockProfile(profilePath, password string) bool {
 		panic(err)
 	}
 
-	readBytesFromFile(encrypted, len(magicVerionPrefix))
+	readBytesFromFile(encrypted, len(magicVersionPrefix))
 	salt := readBytesFromFile(encrypted, argon2SaltLen)
 	nonce := readBytesFromFile(encrypted, chacha20poly1305.NonceSizeX)
 	encryptedZipData := readBytesFromFileUntilEOF(encrypted)
@@ -285,7 +285,7 @@ func SetPassword(profilePath string, password string) {
 		argon2KeyLen,
 	)
 
-	writeBytesToFile(hashFile, []byte(magicVerionPrefix))
+	writeBytesToFile(hashFile, []byte(magicVersionPrefix))
 	writeBytesToFile(hashFile, salt)
 	writeBytesToFile(hashFile, key)
 }
