@@ -1,0 +1,11 @@
+Firecrypt
+License: https://github.com/gltchitm/firecrypt/blob/master/LICENSE
+
+github.com/gofrs/flock
+License: https://github.com/gofrs/flock/blob/master/LICENSE
+
+golang.org/x/crypto
+License: https://pkg.go.dev/golang.org/x/crypto?tab=licenses
+
+gopkg.in/ini.v1
+License: gopkg.in/ini.v1@v1.66.6/LICENSE

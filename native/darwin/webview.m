@@ -39,7 +39,6 @@ NSImage* icon;
                                                               alpha:1]];
         [self.window setTitle:@"Firecrypt"];
         [self.window center];
-
         self.webView = [[WKWebView alloc] init];
 
 #ifdef FIRECRYPT_RELEASE
@@ -105,6 +104,33 @@ NSImage* icon;
     -(BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender {
         return YES;
     }
+    -(void)applicationWillFinishLaunching:(NSNotification *)notification {
+        NSMenu* menubar = [[NSMenu alloc] init];
+        NSMenuItem* menuItem = [[NSMenuItem alloc] init];
+
+        [menubar addItem:menuItem];
+        [NSApp setMainMenu:menubar];
+
+        NSMenu *menu = [[NSMenu alloc] init];
+
+
+        NSString* processName = [[NSRunningApplication currentApplication] localizedName];
+        NSString* aboutTitle = [@"About " stringByAppendingString:processName];
+        NSMenuItem* aboutMenuItem = [[NSMenuItem alloc] initWithTitle:aboutTitle
+                                                               action:@selector(showAbout)
+                                                        keyEquivalent:@""];
+        [menu addItem:aboutMenuItem];
+
+        [menu addItem:[NSMenuItem separatorItem]];
+
+        NSString* quitTitle = [@"Quit " stringByAppendingString:processName];
+        NSMenuItem* quitMenuItem = [[NSMenuItem alloc] initWithTitle:quitTitle
+                                                              action:@selector(terminate:)
+                                                       keyEquivalent:@"q"];
+        [menu addItem:quitMenuItem];
+
+        [menuItem setSubmenu:menu];
+    }
     -(void)applicationDidFinishLaunching:(NSNotification*)notification {
         [self.window orderFront:nil];
         [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
@@ -121,12 +147,91 @@ NSImage* icon;
             [application setActivationPolicy:NSApplicationActivationPolicyRegular];
             [application activateIgnoringOtherApps:YES];
 
-            #ifndef FIRECRYPT_RELEASE
+#ifndef FIRECRYPT_RELEASE
             [application setApplicationIconImage:icon];
-            #endif
+#endif
 
             firefoxRunning = false;
         }
+    }
+
+    -(void)showAbout {
+        NSAlert* alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+        [alert addButtonWithTitle:@"Licenses"];
+
+        [alert setMessageText:@"Firecrypt"];
+
+#ifdef FIRECRYPT_RELEASE
+        [alert setInformativeText:[@"Version: " stringByAppendingString:FIRECRYPT_VERSION]];
+#else
+        [alert setInformativeText:@"Debug Build"];
+#endif
+
+        [alert setIcon:icon];
+        [alert setAlertStyle:NSAlertStyleInformational];
+
+        [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {
+            if (returnCode == NSAlertSecondButtonReturn) {
+                [self showLicenses];
+            }
+        }];
+    }
+    -(void) showLicenses {
+        NSAlert* alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+        [alert setMessageText:@"Licenses"];
+
+        NSString* licensesText = @"";
+
+#ifdef FIRECRYPT_RELEASE
+        #define FIRECRYPT_MAIN_NOTICE_PATH [[NSBundle mainBundle] pathForResource:@"NOTICE" \
+                                                                           ofType:nil]
+        #define FIRECRYPT_VENDOR_NOTICE_PATH [[NSBundle mainBundle] pathForResource:@"vendor/NOTICE" \
+                                                                             ofType:nil]
+        #define FIRECRYPT_ICON_NOTICE_PATH [[NSBundle mainBundle] pathForResource:@"icon/NOTICE" \
+                                                                           ofType:nil]
+#else
+        #define FIRECRYPT_MAIN_NOTICE_PATH @"NOTICE"
+        #define FIRECRYPT_VENDOR_NOTICE_PATH @"ui/vendor/NOTICE"
+        #define FIRECRYPT_ICON_NOTICE_PATH @"icon/NOTICE"
+#endif
+
+        NSError *error = nil;
+
+        NSString* mainNotice = [NSString stringWithContentsOfFile:FIRECRYPT_MAIN_NOTICE_PATH
+                                                         encoding:NSUTF8StringEncoding
+                                                            error:&error];
+        if (error) {
+            mainNotice = @"(could not load main notice)";
+        }
+        licensesText = [licensesText stringByAppendingString:mainNotice];
+        licensesText = [licensesText stringByAppendingString:@"\n"];
+
+        NSString* vendorNotice = [NSString stringWithContentsOfFile:FIRECRYPT_VENDOR_NOTICE_PATH
+                                                           encoding:NSUTF8StringEncoding
+                                                              error:&error];
+        if (error) {
+            vendorNotice = @"(could not load vendor notice)";
+        }
+        licensesText = [licensesText stringByAppendingString:vendorNotice];
+        licensesText = [licensesText stringByAppendingString:@"\n"];
+
+        NSString* iconNotice = [NSString stringWithContentsOfFile:FIRECRYPT_VENDOR_NOTICE_PATH
+                                                         encoding:NSUTF8StringEncoding
+                                                            error:&error];
+        if (error) {
+            iconNotice = @"(could not load icon notice)";
+        }
+
+        licensesText = [licensesText stringByAppendingString:iconNotice];
+
+        [alert setInformativeText:licensesText];
+
+        [alert setIcon:icon];
+        [alert setAlertStyle:NSAlertStyleInformational];
+
+        [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode){}];
     }
 @end
 
@@ -137,9 +242,9 @@ void StartFirecrypt() {
         CRASH("already started!");
     }
 
-    #ifndef FIRECRYPT_RELEASE
+#ifndef FIRECRYPT_RELEASE
     NSLog(@"this is a debug build. issues not present in release builds may occur.\n");
-    #endif
+#endif
 
     started = true;
 
